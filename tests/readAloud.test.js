@@ -15,6 +15,8 @@ test('splitSentences: one chunk per sentence, long ones cut near 200 characters'
   assert.ok(chunks.every((c) => c.length <= 220));
   assert.equal(chunks.join(' '), long);
   assert.deepEqual(splitSentences(''), []);
+  assert.deepEqual(splitSentences('2.7 (login and sign-up) decides; roles are 2.7a. Next (e.g. this).'),
+    ['2.7 (login and sign-up) decides; roles are 2.7a.', 'Next (e.g.', 'this).']);
 });
 
 test('changeSpeech: edited block reads the new text; removed words only with Show removed content', () => {
@@ -40,10 +42,21 @@ test('changeSpeech: table rows, code blocks and our own UI', () => {
     '<table><tr id="row"><td><ins>new cell</ins></td><td>kept</td></tr></table>' +
     '<pre id="code"><code><ins>a\nb\n</ins></code></pre>' +
     '<p id="ui"><ins>Text</ins><button class="grdc-comment-btn">+</button></p>');
-  assert.deepEqual(changeSpeech(doc.getElementById('row')), ['new cell kept']);
+  assert.deepEqual(changeSpeech(doc.getElementById('row')), ['new cell', 'kept']);
   assert.deepEqual(changeSpeech(doc.getElementById('code')), ['Code block, 2 lines.']);
   assert.deepEqual(changeSpeech(doc.getElementById('ui')), ['Text']);
   assert.deepEqual(changeSpeech(null), []);
+});
+
+test('changeSpeech: each table cell ends a sentence, even without a stop', () => {
+  const doc = dom('<table><tbody id="t"><tr><td>we should consider a. then we move on</td><td>2.7 decides</td></tr>' +
+    '<tr><td>next row</td><td></td></tr></tbody></table>');
+  const block = doc.getElementById('t');
+  const sentences = changeSpeech(block);
+  assert.deepEqual(sentences, ['we should consider a.', 'then we move on', '2.7 decides', 'next row']);
+  let from = 0;
+  const found = sentences.map((s) => { const f = sentenceRange(block, s, from); from = f.end; return f.range.toString(); });
+  assert.deepEqual(found, sentences);
 });
 
 test('fileSpeech: a new file is read block by block, a deleted one is announced', () => {

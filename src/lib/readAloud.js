@@ -29,13 +29,16 @@
   const READING_SELECTOR = 'h1, h2, h3, h4, h5, h6, p, li, tr, pre, blockquote';
   const FILE_BOUNDARY_SELECTOR = '.markdown-body, .prose-diff';
 
-  const collapse = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+  // Marks the end of a table cell in block text: a cell boundary ends a sentence.
+  const CELL_END = '\u0001';
+  const collapse = (s) => String(s || '').replace(/[\s\u0001]+/g, ' ').trim();
 
   // One sentence per chunk; long sentences split near 200 characters, because
   // Chrome cuts off long utterances. Ported from claude-read-along.
   function splitSentences(text) {
     if (!text) return [];
-    const parts = String(text).match(/[^.!?]+(?:[.!?]+["')\]]*|$)\s*/g) || [String(text)];
+    // A stop counts only before whitespace, so "2.7" or "e.g" stay inside the sentence.
+    const parts = String(text).split(/(?<=[.!?]["')\]]*)\s+/);
     const out = [];
     for (let p of parts) {
       p = p.trim();
@@ -65,14 +68,17 @@
   function blockTexts(blockEl) {
     const clone = blockEl.cloneNode(true);
     clone.querySelectorAll(INJECTED_UI_SELECTOR).forEach((n) => n.remove());
-    // Table cells and list children would otherwise run together without a space.
-    clone.querySelectorAll('td, th, li').forEach((n) => n.append(' '));
+    // List children would otherwise run together without a space; cells end sentences.
+    clone.querySelectorAll('li').forEach((n) => n.append(' '));
+    clone.querySelectorAll('td, th').forEach((n) => n.append(CELL_END));
     const removed = Array.from(clone.querySelectorAll(REMOVED_SELECTOR))
       .filter((n) => !(n.parentElement && n.parentElement.closest(REMOVED_SELECTOR)))
       .map((n) => collapse(n.textContent))
       .filter(Boolean);
     clone.querySelectorAll(REMOVED_SELECTOR).forEach((n) => n.remove());
-    return { text: collapse(clone.textContent), removed };
+    // One text per table cell (the whole block when it has no cells).
+    const units = clone.textContent.split(CELL_END).map(collapse).filter(Boolean);
+    return { units, removed };
   }
 
   // "Removed block starting with" + at most two words of the deleted text.
@@ -91,11 +97,12 @@
       const lines = String(blockEl.textContent || '').split('\n').filter((l) => l.trim()).length;
       return [`Code block, ${lines} line${lines === 1 ? '' : 's'}.`];
     }
-    const { text, removed } = blockTexts(blockEl);
+    const { units, removed } = blockTexts(blockEl);
+    const text = units.join(' ');
     if (isWhollyRemoved(blockEl) || !text) {
       return [removedBlockSentence(text || removed.join(' '))];
     }
-    const out = splitSentences(text);
+    const out = units.flatMap(splitSentences);
     if (includeRemoved && removed.length) out.push(...splitSentences(`Removed: ${removed.join(', ')}.`));
     return out;
   }
@@ -117,8 +124,8 @@
 
   // DOM Range of `sentence` inside the block's visible (non-deleted) text, searching
   // from character `from` of the whitespace-collapsed text. Returns { range, end } or null.
-  // shortcut: text split across table cells or list children has no space between
-  // nodes, so such sentences may not be found (no highlight); fine for prose.
+  // shortcut: text split across list children has no space between nodes, so such
+  // sentences may not be found (no highlight); fine for prose.
   function sentenceRange(blockEl, sentence, from) {
     if (!blockEl || !blockEl.ownerDocument) return null;
     const doc = blockEl.ownerDocument;
