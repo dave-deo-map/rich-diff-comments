@@ -38,8 +38,8 @@
   function splitSentences(text) {
     if (!text) return [];
     // A stop counts only before whitespace, so "2.7" stays inside the sentence; nor after
-    // e.g. / i.e. / vs. / cf. ("etc." often ends a sentence, so it still splits).
-    const parts = String(text).split(/(?<=[.!?]["')\]]*)(?<!\b(?:e\.g|i\.e|vs|cf)\.)\s+/i);
+    // e.g. / i.e. / vs. / cf. / Mr. / Dr. / approx. ("etc." often ends a sentence, so it still splits).
+    const parts = String(text).split(/(?<=[.!?]["')\]]*)(?<!\b(?:e\.g|i\.e|vs|cf|mr|dr|approx)\.)\s+/i);
     const out = [];
     for (let p of parts) {
       p = p.trim();
