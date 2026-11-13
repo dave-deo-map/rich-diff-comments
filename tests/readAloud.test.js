@@ -21,6 +21,7 @@ test('splitSentences: one chunk per sentence, long ones cut near 200 characters'
     ['Use one, i.e. this, vs. that; cf. E.G. here.', 'Done etc.', 'Next.']);
   assert.deepEqual(splitSentences('Mr. Cohen and Dr. Levi took approx. 3 days. Next.'),
     ['Mr. Cohen and Dr. Levi took approx. 3 days.', 'Next.']);
+  assert.deepEqual(splitSentences('Mrs. Cohen met Ms. Levi. Next.'), ['Mrs. Cohen met Ms. Levi.', 'Next.']);
 });
 
 test('changeSpeech: edited block reads the new text; removed words only with Show removed content', () => {
