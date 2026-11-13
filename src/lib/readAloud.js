@@ -37,8 +37,9 @@
   // Chrome cuts off long utterances. Ported from claude-read-along.
   function splitSentences(text) {
     if (!text) return [];
-    // A stop counts only before whitespace, so "2.7" or "e.g" stay inside the sentence.
-    const parts = String(text).split(/(?<=[.!?]["')\]]*)\s+/);
+    // A stop counts only before whitespace, so "2.7" stays inside the sentence; nor after
+    // e.g. / i.e. / vs. / cf. ("etc." often ends a sentence, so it still splits).
+    const parts = String(text).split(/(?<=[.!?]["')\]]*)(?<!\b(?:e\.g|i\.e|vs|cf)\.)\s+/i);
     const out = [];
     for (let p of parts) {
       p = p.trim();

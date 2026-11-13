@@ -16,7 +16,9 @@ test('splitSentences: one chunk per sentence, long ones cut near 200 characters'
   assert.equal(chunks.join(' '), long);
   assert.deepEqual(splitSentences(''), []);
   assert.deepEqual(splitSentences('2.7 (login and sign-up) decides; roles are 2.7a. Next (e.g. this).'),
-    ['2.7 (login and sign-up) decides; roles are 2.7a.', 'Next (e.g.', 'this).']);
+    ['2.7 (login and sign-up) decides; roles are 2.7a.', 'Next (e.g. this).']);
+  assert.deepEqual(splitSentences('Use one, i.e. this, vs. that; cf. E.G. here. Done etc. Next.'),
+    ['Use one, i.e. this, vs. that; cf. E.G. here.', 'Done etc.', 'Next.']);
 });
 
 test('changeSpeech: edited block reads the new text; removed words only with Show removed content', () => {
